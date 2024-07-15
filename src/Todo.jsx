@@ -1,75 +1,64 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import AddTodoForm from './components/AddTodoForm';
+import TodoList from './components/TodoList';
+import './App.css';
+AddTodoForm;
 
 function Todo() {
 	const [todos, setTodos] = useState([]);
 	const [newTodo, setNewTodo] = useState('');
-	const [limit, setLimit] = useState(10); // Initial limit of todos to fetch
-	const [displayedTodos, setDisplayedTodos] = useState(10); // Initial number of todos displayed
+	const [displayedTodos, setDisplayedTodos] = useState(5);
 
 	useEffect(() => {
-		axios
-			.get('https://jsonplaceholder.typicode.com/todos')
-			.then((res) => setTodos(res.data))
-			.catch((err) => err.message);
-	}, [limit]);
+		const storedTodos = JSON.parse(localStorage.getItem('todos'));
+		if (storedTodos) {
+			setTodos(storedTodos);
+		}
+	}, []);
 
-	const loadMoreTodos = () => {
-		setDisplayedTodos(displayedTodos + 10); // Increase todos by 10
-	};
+	useEffect(() => {
+		localStorage.setItem('todos', JSON.stringify(todos));
+	}, [todos]);
 
 	const addTodo = () => {
 		if (newTodo.trim() === '') return;
-		const newTodoItem = { title: newTodo, completed: false };
-
-		axios
-			.post('https://jsonplaceholder.typicode.com/todos', newTodoItem)
-			.then((res) => {
-				setTodos([...todos, res.data]);
-				setNewTodo('');
-			})
-			.catch((err) => err.meesage);
+		const newTodoItem = { id: Date.now(), title: newTodo, completed: false };
+		setTodos([...todos, newTodoItem]);
+		setNewTodo('');
 	};
 
 	const deleteTodo = (id) => {
-		axios
-			.delete(`https://jsonplaceholder.typicode.com/todos/${id}`)
-			.then(() => {
-				const updatedTodos = todos.filter((todo) => todo.id !== id);
-				setTodos(updatedTodos);
-			})
-			.catch((err) => err.message);
+		const updatedTodos = todos.filter((todo) => todo.id !== id);
+		setTodos(updatedTodos);
+	};
+
+	const toggleCompletion = (id) => {
+		const updatedTodos = todos.map((todo) =>
+			todo.id === id ? { ...todo, completed: !todo.completed } : todo
+		);
+		setTodos(updatedTodos);
+	};
+
+	const loadMoreTodos = () => {
+		setDisplayedTodos(displayedTodos + 5);
 	};
 
 	return (
-		<div>
+		<div className="container">
 			<h1>Todo List</h1>
-			<input
-				type="text"
-				value={newTodo}
-				onChange={(e) => setNewTodo(e.target.value)}
-				placeholder="Add new todo"
+			<AddTodoForm
+				newTodo={newTodo}
+				setNewTodo={setNewTodo}
+				addTodo={addTodo}
 			/>
-			<button onClick={addTodo}>Add Todo</button>
-			<ul>
-				{todos.slice(0, displayedTodos).map((todo) => (
-					<li key={todo.id}>
-						<input
-							type="checkbox"
-							checked={todo.completed}
-							onChange={() => toggleCompletion(todo.id, !todo.completed)}
-						/>
-						<span
-							style={{
-								textDecoration: todo.completed ? 'line-through' : 'none',
-							}}
-						>
-							{todo.title}
-						</span>
-						<button onClick={() => deleteTodo(todo.id)}>Delete</button>
-					</li>
-				))}
-			</ul>
+			<div className="todo-list">
+				<TodoList
+					todos={todos}
+					displayedTodos={displayedTodos}
+					toggleCompletion={toggleCompletion}
+					deleteTodo={deleteTodo}
+				/>
+			</div>
 			{displayedTodos < todos.length && (
 				<button onClick={loadMoreTodos}>Load More</button>
 			)}
